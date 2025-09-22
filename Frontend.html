@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered SCM Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            margin: 0 5px;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tool-section {
+            margin-bottom: 30px;
+        }
+
+        .tool-title {
+            color: #667eea;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-field input, .input-field select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field input:focus, .input-field select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .results-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .kpi-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .chatbot-container {
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 13px 13px 0 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 20px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-bottom-left-radius: 5px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-radius: 0 0 13px 13px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            margin-right: 10px;
+        }
+
+        .send-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: #5a67d8;
+            transform: scale(1.1);
+        }
+
+        .segment-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .segment-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+
+        .route-map {
+            background: #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .forecast-chart {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI-Powered Supply Chain Management</h1>
+            <p>Advanced Analytics & Intelligence Platform</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" onclick="showTab('forecasting')">📈 Demand Forecasting</button>
+            <button class="nav-tab" onclick="showTab('routing')">🚛 Route Optimization</button>
+            <button class="nav-tab" onclick="showTab('segmentation')">👥 Customer Segmentation</button>
+            <button class="nav-tab" onclick="showTab('chatbot')">💬 AI Assistant</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="tool-section">
+                <h2 class="tool-title">Supply Chain Analytics Dashboard</h2>
+                
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="totalSales">$2.4M</div>
+                        <div class="kpi-label">Total Sales</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="inventoryTurnover">12.3</div>
+                        <div class="kpi-label">Inventory Turnover</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="onTimeDelivery">94%</div>
+                        <div class="kpi-label">On-Time Delivery</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="activeSuppliers">156</div>
+                        <div class="kpi-label">Active Suppliers</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+
+                <button class="btn" onclick="refreshDashboard()">🔄 Refresh Data</button>
+            </div>
+        </div>
+
+        <!-- Demand Forecasting Tab -->
+        <div id="forecasting" class="tab-content">
+            <div class="tool-section">
+                <h2 class="tool-title">AI-Driven Demand Forecasting</h2>
+                
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Product Category</label>
+                        <select id="productCategory">
+                            <option value="electronics">Electronics</option>
+                            <option value="clothing">Clothing</option>
+                            <option value="food">Food & Beverages</option>
+                            <option value="home">Home & Garden</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label>Forecast Period (Months)</label>
+                        <input type="number" id="forecastPeriod" value="6" min="1" max="24">
+                    </div>
+                    <div class="input-field">
+                        <label>Historical Data Points</label>
+                        <input type="number" id="historicalPoints" value="24" min="12" max="60">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="generateForecast()">🔮 Generate Forecast</button>
+
+                <div id="forecastResults" class="results-panel" style="display: none;">
+                    <div class="forecast-chart">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                    <div id="forecastMetrics"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Optimization Tab -->
+        <div id="routing" class="tab-content">
+            <div class="tool-section">
+                <h2 class="tool-title">Logistics Route Optimization</h2>
+                
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Starting Location</label>
+                        <input type="text" id="startLocation" value="Distribution Center A" placeholder="Enter starting point">
+                    </div>
+                    <div class="input-field">
+                        <label>Delivery Locations (comma-separated)</label>
+                        <input type="text" id="deliveryLocations" value="Store 1, Store 2, Store 3, Store 4, Store 5" placeholder="Enter destinations">
+                    </div>
+                    <div class="input-field">
+                        <label>Vehicle Capacity (tons)</label>
+                        <input type="number" id="vehicleCapacity" value="10" min="1" max="50">
+                    </div>
+                    <div class="input-field">
+                        <label>Optimization Goal</label>
+                        <select id="optimizationGoal">
+                            <option value="time">Minimize Time</option>
+                            <option value="cost">Minimize Cost</option>
+                            <option value="fuel">Minimize Fuel</option>
+                            <option value="balanced">Balanced</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="optimizeRoute()">🗺️ Optimize Route</button>
+
+                <div id="routeResults" class="results-panel" style="display: none;">
+                    <div class="route-map" id="routeMap">
+                        <div class="loading" id="routeLoading"></div>
+                        <div id="routeVisualization" style="display: none;"></div>
+                    </div>
+                    <div id="routeMetrics"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Segmentation Tab -->
+        <div id="segmentation" class="tab-content">
+            <div class="tool-section">
+                <h2 class="tool-title">Customer Segmentation Analysis</h2>
+                
+                <div class="input-group">
+                    <div class="input-field">
+                        <label>Segmentation Method</label>
+                        <select id="segmentationMethod">
+                            <option value="rfm">RFM Analysis</option>
+                            <option value="behavioral">Behavioral</option>
+                            <option value="geographic">Geographic</option>
+                            <option value="demographic">Demographic</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label>Number of Clusters</label>
+                        <input type="number" id="clusterCount" value="4" min="2" max="10">
+                    </div>
+                    <div class="input-field">
+                        <label>Analysis Period</label>
+                        <select id="analysisPeriod">
+                            <option value="3months">Last 3 Months</option>
+                            <option value="6months">Last 6 Months</option>
+                            <option value="12months">Last 12 Months</option>
+                            <option value="24months">Last 24 Months</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="performSegmentation()">🎯 Analyze Segments</button>
+
+                <div id="segmentationResults" class="results-panel" style="display: none;">
+                    <div class="chart-container">
+                        <canvas id="segmentationChart"></canvas>
+                    </div>
+                    <div id="segmentCards"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chatbot Tab -->
+        <div id="chatbot" class="tab-content">
+            <div class="tool-section">
+                <h2 class="tool-title">AI Supply Chain Assistant</h2>
+                
+                <div class="chatbot-container">
+                    <div class="chat-header">
+                        🤖 SCM Assistant - Ask about shipments, suppliers, or analytics
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message bot-message">
+                            Hello! I'm your AI Supply Chain Assistant. I can help you with:
+                            <br>• Shipment tracking and status
+                            <br>• Supplier information and FAQs
+                            <br>• Inventory levels and alerts
+                            <br>• Performance analytics
+                            <br>• Route optimization suggestions
+                            <br><br>What would you like to know?
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" class="chat-input" placeholder="Type your question..." onkeypress="handleChatKeyPress(event)">
+                        <button class="send-btn" onclick="sendMessage()">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for charts and data
+        let dashboardChart, forecastChart, segmentationChart;
+        let currentForecastData = {};
+        let sampleData = {
+            sales: [120000, 135000, 128000, 142000, 156000, 148000, 162000, 175000, 168000, 182000, 195000, 203000],
+            inventory: [85, 78, 92, 88, 76, 83, 79, 86, 81, 77, 84, 89],
+            deliveryTimes: [2.3, 2.1, 2.4, 2.2, 2.0, 2.3, 2.1, 1.9, 2.2, 2.0, 1.8, 1.9],
+            customerSegments: {
+                'High Value': 25,
+                'Regular': 45,
+                'New Customer': 20,
+                'At Risk': 10
+            }
+        };
+
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active to clicked nav tab
+            event.target.classList.add('active');
+            
+            // Initialize charts for the selected tab
+            setTimeout(() => {
+                if (tabName === 'dashboard') {
+                    initDashboard();
+                }
+            }, 100);
+        }
+
+        // Initialize dashboard
+        function initDashboard() {
+            const ctx = document.getElementById('dashboardChart');
+            if (!ctx) return;
+
+            if (dashboardChart) {
+                dashboardChart.destroy();
+            }
+
+            dashboardChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Sales ($000)',
+                        data: sampleData.sales,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Inventory Levels (%)',
+                        data: sampleData.inventory,
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Sales Performance & Inventory Levels'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Refresh dashboard data
+        function refreshDashboard() {
+            // Simulate data refresh
+            const refreshBtn = event.target;
+            refreshBtn.innerHTML = '🔄 Refreshing...';
+            refreshBtn.disabled = true;
+
+            setTimeout(() => {
+                // Update KPIs with random variations
+                document.getElementById('totalSales').textContent = '$' + (2.4 + Math.random() * 0.4).toFixed(1) + 'M';
+                document.getElementById('inventoryTurnover').textContent = (12 + Math.random() * 2).toFixed(1);
+                document.getElementById('onTimeDelivery').textContent = (80 + Math.random() * 4).toFixed(0) + '%';
+                document.getElementById('activeSuppliers').textContent = (150 + Math.floor(Math.random() * 20));
+
+                // Refresh chart
+                initDashboard();
+
+                refreshBtn.innerHTML = '🔄 Refresh Data';
+                refreshBtn.disabled = false;
+            }, 1500);
+        }
+
+        // Generate demand forecast
+        function generateForecast() {
+            const category = document.getElementById('productCategory').value;
+            const period = parseInt(document.getElementById('forecastPeriod').value);
+            const historical = parseInt(document.getElementById('historicalPoints').value);
+
+            const resultsDiv = document.getElementById('forecastResults');
+            resultsDiv.style.display = 'block';
+
+            // Generate historical and forecast data
+            const historicalData = [];
+            const forecastData = [];
+            const labels = [];
+
+            let baseValue = Math.random() * 1000 + 500;
+            let trend = (Math.random() - 0.5) * 20;
+            let seasonality = Math.random() * 100 + 50;
+
+            // Historical data
+            for (let i = 0; i < historical; i++) {
+                const seasonal = Math.sin((i / 12) * 2 * Math.PI) * seasonality;
+                const noise = (Math.random() - 0.5) * 50;
+                const value = baseValue + (trend * i) + seasonal + noise;
+                historicalData.push(Math.max(0, value));
+                labels.push(`Month ${i - historical + 1}`);
+            }
+
+            // Forecast data
+            for (let i = 0; i < period; i++) {
+                const seasonal = Math.sin(((historical + i) / 12) * 2 * Math.PI) * seasonality;
+                const value = baseValue + (trend * (historical + i)) + seasonal;
+                forecastData.push(Math.max(0, value));
+                labels.push(`Month ${i + 1}`);
+            }
+
+            // Create chart
+            const ctx = document.getElementById('forecastChart');
+            if (forecastChart) {
+                forecastChart.destroy();
+            }
+
+            forecastChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Historical Demand',
+                        data: [...historicalData, ...Array(period).fill(null)],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }, {
+                        label: 'Forecasted Demand',
+                        data: [...Array(historical).fill(null), ...forecastData],
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${category.charAt(0).toUpperCase() + category.slice(1)} Demand Forecast`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Demand Units'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Display metrics
+            const avgForecast = forecastData.reduce((a, b) => a + b, 0) / forecastData.length;
+            const confidence = 85 + Math.random() * 10;
+            
+            document.getElementById('forecastMetrics').innerHTML = `
+                <h3>Forecast Metrics</h3>
+                <p><strong>Average Forecasted Demand:</strong> ${avgForecast.toFixed(0)} units</p>
+                <p><strong>Forecast Accuracy:</strong> ${confidence.toFixed(1)}%</p>
+                <p><strong>Trend:</strong> ${trend > 0 ? 'Increasing' : 'Decreasing'} (${trend.toFixed(1)} units/month)</p>
+                <p><strong>Seasonality Factor:</strong> ${(seasonality/50).toFixed(1)}x</p>
+            `;
+        }
+
+        // Optimize route
+        function optimizeRoute() {
+            const startLocation = document.getElementById('startLocation').value;
+            const locations = document.getElementById('deliveryLocations').value.split(',').map(s => s.trim());
+            const capacity = document.getElementById('vehicleCapacity').value;
+            const goal = document.getElementById('optimizationGoal').value;
+
+            const resultsDiv = document.getElementById('routeResults');
+            const loadingDiv = document.getElementById('routeLoading');
+            const vizDiv = document.getElementById('routeVisualization');
+
+            resultsDiv.style.display = 'block';
+            loadingDiv.style.display = 'block';
+            vizDiv.style.display = 'none';
+
+            setTimeout(() => {
+                loadingDiv.style.display = 'none';
+                vizDiv.style.display = 'block';
+
+                // Generate optimized route
+                const shuffledLocations = _.shuffle([...locations]);
+                const totalDistance = 45 + Math.random() * 30;
+                const totalTime = 3.2 + Math.random() * 2;
+                const fuelCost = 85 + Math.random() * 40;
+                const savings = 15 + Math.random() * 25;
+
+                vizDiv.innerHTML = `
+                    <h3>🗺️ Optimized Route</h3>
+                    <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                        <strong>Route:</strong> ${startLocation} → ${shuffledLocations.join(' → ')} → ${startLocation}
+                    </div>
+                `;
+
+                document.getElementById('routeMetrics').innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+                            <strong>Total Distance</strong><br>
+                            <span style="font-size: 1.5em; color: #667eea;">${totalDistance.toFixed(1)} km</span>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+                            <strong>Estimated Time</strong><br>
+                            <span style="font-size: 1.5em; color: #667eea;">${totalTime.toFixed(1)} hours</span>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+                            <strong>Fuel Cost</strong><br>
+                            <span style="font-size: 1.5em; color: #667eea;">$${fuelCost.toFixed(0)}</span>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; text-align: center;">
+                            <strong>Cost Savings</strong><br>
+                            <span style="font-size: 1.5em; color: #28a745;">$${savings.toFixed(0)}</span>
+                        </div>
+                    </div>
+                `;
+            }, 1500);
+        }
+
+        // Segmentation analysis
+        function performSegmentation() {
+            const method = document.getElementById('segmentationMethod').value;
+            const clusters = parseInt(document.getElementById('clusterCount').value);
+            const period = document.getElementById('analysisPeriod').value;
+
+            const resultsDiv = document.getElementById('segmentationResults');
+            resultsDiv.style.display = 'block';
+
+            // Simulate segment data
+            const segmentLabels = [];
+            const segmentValues = [];
+            for (let i = 0; i < clusters; i++) {
+                segmentLabels.push(`Segment ${i + 1}`);
+                segmentValues.push(Math.floor(Math.random() * 30 + 10));
+            }
+
+            // Chart
+            const ctx = document.getElementById('segmentationChart');
+            if (segmentationChart) segmentationChart.destroy();
+
+            segmentationChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: segmentLabels,
+                    datasets: [{
+                        data: segmentValues,
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#28a745', '#ff9800', '#e91e63', '#00bcd4', '#8bc34a', '#f44336', '#3f51b5', '#9c27b0'
+                        ]
+                    }]
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${method.charAt(0).toUpperCase() + method.slice(1)} Segmentation`
+                        }
+                    }
+                }
+            });
+
+            // Segment cards
+            let cardsHtml = '';
+            for (let i = 0; i < clusters; i++) {
+                cardsHtml += `
+                    <div class="segment-card">
+                        <h4>${segmentLabels[i]}</h4>
+                        <p><strong>Customers:</strong> ${segmentValues[i]}</p>
+                        <p><strong>Key Traits:</strong> ...</p>
+                    </div>
+                `;
+            }
+            document.getElementById('segmentCards').innerHTML = cardsHtml;
+        }
+
+        // Chatbot functionality
+        function sendMessage() {
+            const input = document.getElementById("chatInput");
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const chatMessages = document.getElementById("chatMessages");
+
+            // Show user message
+            const userMsgDiv = document.createElement("div");
+            userMsgDiv.className = "message user-message";
+            userMsgDiv.textContent = msg;
+            chatMessages.appendChild(userMsgDiv);
+            input.value = "";
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Simulate bot reply
+            setTimeout(() => {
+                const botMsgDiv = document.createElement("div");
+                botMsgDiv.className = "message bot-message";
+                botMsgDiv.textContent = "I'm an AI assistant. How can I help you with supply chain analytics?";
+                chatMessages.appendChild(botMsgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        // Initialize dashboard on load
+        window.onload = function() {
+            initDashboard();
+        };
+    </script>
+     <script src="chatbot.js"></script>
+</body>
+</html>
